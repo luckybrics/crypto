@@ -1,0 +1,50 @@
+name: run-alert
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # tiap 10 menit - sesuaikan kalau mau beda
+  workflow_dispatch: {}       # biar bisa di-trigger manual dari tab Actions
+
+# TIDAK ADA "permissions: contents: write" di sini - workflow ini TIDAK PERNAH
+# commit apapun, baik ke repo ini maupun ke repo private. State disimpan di
+# Gist terpisah lewat API, source code cuma DIBACA (read-only) dari repo
+# private. Ini inti dari kenapa desain ini lebih aman dari versi single-repo.
+
+jobs:
+  run-alert:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout repo scheduler ini sendiri (isinya cuma workflow file ini,
+      # tidak wajib sebenarnya, tapi actions/checkout perlu jalan di suatu
+      # tempat) - biarkan default checkout repo public ini.
+      - uses: actions/checkout@v4
+
+      # Checkout SOURCE CODE dari repo PRIVATE, pakai token khusus.
+      # GANTI "NAMA_USER/NAMA_REPO_PRIVATE" dengan repo private Anda yang
+      # sebenarnya (format: pemilik/nama-repo).
+      - name: Ambil source code dari repo private
+        uses: actions/checkout@v4
+        with:
+          repository: luckybrics/crypto-alert-bot
+          token: ${{ secrets.PRIVATE_REPO_PAT }}
+          path: private-src
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r private-src/requirements.txt
+
+      - name: Run alert bot
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          STATE_GIST_ID: ${{ secrets.STATE_GIST_ID }}
+          STATE_GIST_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
+        run: python private-src/crypto_alert.py
+
+      # TIDAK ADA step "git commit/push" di sini sama sekali - state sudah
+      # tersimpan ke Gist langsung dari dalam crypto_alert.py (fungsi
+      # save_state()). Repo public ini dan repo private itu TIDAK PERNAH
+      # ditulisi oleh workflow ini.
