@@ -1,11 +1,14 @@
 name: run-alert
 
 on:
+  # BACKUP scheduler
   schedule:
     - cron: "*/10 * * * *"
 
+  # Manual trigger
   workflow_dispatch: {}
 
+  # Trigger dari Cron-job.org
   repository_dispatch:
     types: [run-trading-bot]
 
