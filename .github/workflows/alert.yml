@@ -2,8 +2,12 @@ name: run-alert
 
 on:
   schedule:
-    - cron: "*/10 * * * *"   # tiap 10 menit - sesuaikan kalau mau beda
-  workflow_dispatch: {}       # biar bisa di-trigger manual dari tab Actions
+    - cron: "*/10 * * * *"
+
+  workflow_dispatch: {}
+
+  repository_dispatch:
+    types: [run-trading-bot]
 
 # TIDAK ADA "permissions: contents: write" di sini - workflow ini TIDAK PERNAH
 # commit apapun, baik ke repo ini maupun ke repo private. State disimpan di
