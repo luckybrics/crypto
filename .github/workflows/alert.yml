@@ -1,16 +1,9 @@
 name: run-alert
 
 on:
-  # BACKUP scheduler
   schedule:
-    - cron: "*/10 * * * *"
-
-  # Manual trigger
-  workflow_dispatch: {}
-
-  # Trigger dari Cron-job.org
-  repository_dispatch:
-    types: [run-trading-bot]
+    - cron: "*/20 * * * *"   # CADANGAN - cron-job.org yang jadi pemicu utama (tiap 10 menit)
+  workflow_dispatch: {}       # dipakai cron-job.org buat trigger, DAN bisa juga di-trigger manual dari tab Actions
 
 # TIDAK ADA "permissions: contents: write" di sini - workflow ini TIDAK PERNAH
 # commit apapun, baik ke repo ini maupun ke repo private. State disimpan di
@@ -26,9 +19,7 @@ jobs:
       # tempat) - biarkan default checkout repo public ini.
       - uses: actions/checkout@v4
 
-      # Checkout SOURCE CODE dari repo PRIVATE, pakai token khusus.
-      # GANTI "NAMA_USER/NAMA_REPO_PRIVATE" dengan repo private Anda yang
-      # sebenarnya (format: pemilik/nama-repo).
+      # Checkout SOURCE CODE dari repo PRIVATE, pakai token khusus (read-only).
       - name: Ambil source code dari repo private
         uses: actions/checkout@v4
         with:
