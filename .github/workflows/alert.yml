@@ -5,21 +5,25 @@ on:
     - cron: "*/20 * * * *"   # CADANGAN - cron-job.org yang jadi pemicu utama (tiap 10 menit)
   workflow_dispatch: {}       # dipakai cron-job.org buat trigger, DAN bisa juga di-trigger manual dari tab Actions
 
-# TIDAK ADA "permissions: contents: write" di sini - workflow ini TIDAK PERNAH
-# commit apapun, baik ke repo ini maupun ke repo private. State disimpan di
-# Gist terpisah lewat API, source code cuma DIBACA (read-only) dari repo
-# private. Ini inti dari kenapa desain ini lebih aman dari versi single-repo.
+# Hanya 1 run yang boleh jalan dalam satu waktu. Tanpa ini, cron-job.org dan
+# cron GitHub bisa jalan bersamaan dan saling menimpa state di Gist.
+# cancel-in-progress: false -> run yang baru menunggu, tidak membatalkan run yang sedang jalan.
+concurrency:
+  group: run-alert
+  cancel-in-progress: false
+
+# TIDAK ADA "permissions: contents: write" dan TIDAK ADA step git commit/push.
+# Workflow ini tidak pernah menulis ke repo. State disimpan di GitHub Gist
+# lewat API (dari dalam crypto_alert.py). Source code cuma DIBACA dari repo private.
 
 jobs:
   run-alert:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      # Checkout repo scheduler ini sendiri (isinya cuma workflow file ini,
-      # tidak wajib sebenarnya, tapi actions/checkout perlu jalan di suatu
-      # tempat) - biarkan default checkout repo public ini.
       - uses: actions/checkout@v4
 
-      # Checkout SOURCE CODE dari repo PRIVATE, pakai token khusus (read-only).
+      # Source code dari repo PRIVATE, pakai token khusus (read-only di repo).
       - name: Ambil source code dari repo private
         uses: actions/checkout@v4
         with:
@@ -41,8 +45,3 @@ jobs:
           STATE_GIST_ID: ${{ secrets.STATE_GIST_ID }}
           STATE_GIST_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
         run: python private-src/crypto_alert.py
-
-      # TIDAK ADA step "git commit/push" di sini sama sekali - state sudah
-      # tersimpan ke Gist langsung dari dalam crypto_alert.py (fungsi
-      # save_state()). Repo public ini dan repo private itu TIDAK PERNAH
-      # ditulisi oleh workflow ini.
